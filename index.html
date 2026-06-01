@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow">
+<meta name="yandex" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>ЖКУ Аналитика — кв. 370</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;700&family=JetBrains+Mono:wght@300;400&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --border: #1e2230;
+    --accent1: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #a8ff78;
+    --accent4: #f7971e;
+    --accent5: #bb86fc;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.6;
+  }
+
+  .grid-bg {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .container {
+    position: relative; z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  header {
+    margin-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent1);
+    border: 1px solid var(--accent1);
+    padding: 4px 12px;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+
+  h1 span { color: var(--accent1); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .stat-card:hover { border-color: var(--accent1); }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card:nth-child(1)::before { background: var(--accent1); }
+  .stat-card:nth-child(2)::before { background: var(--accent2); }
+  .stat-card:nth-child(3)::before { background: var(--accent3); }
+  .stat-card:nth-child(4)::before { background: var(--accent4); }
+
+  .stat-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .stat-value {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 28px;
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .chart-full { grid-column: 1 / -1; }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px;
+    position: relative;
+  }
+
+  .chart-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .chart-desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 24px;
+    letter-spacing: 0.05em;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 280px;
+  }
+
+  .chart-wrap-tall {
+    position: relative;
+    height: 340px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(30,34,48,0.5);
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: rgba(0,229,255,0.03); }
+
+  .up { color: var(--accent2); }
+  .down { color: var(--accent3); }
+
+  .legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 768px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="grid-bg"></div>
+
+<div class="container">
+  <header>
+    <div class="badge">// Аналитика платежей</div>
+    <h1>ЖКУ <span>кв. 370</span></h1>
+    <p class="subtitle">ул. Гагарина, 9 · Discovery Residence · ООО «А1» · дек 2024 — апр 2026</p>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Мин. платёж</div>
+      <div class="stat-value" style="color:var(--accent3)">8 717</div>
+      <div class="stat-sub">₽ — май 2025</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Макс. платёж</div>
+      <div class="stat-value" style="color:var(--accent2)">17 839</div>
+      <div class="stat-sub">₽ — январь 2026</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Среднее/мес</div>
+      <div class="stat-value" style="color:var(--accent1)">11 544</div>
+      <div class="stat-sub">₽ за 17 месяцев</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Итого за период</div>
+      <div class="stat-value" style="color:var(--accent4)">196 242</div>
+      <div class="stat-sub">₽ дек 2024 — апр 2026</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <!-- Chart 1: Total by month -->
+    <div class="chart-card chart-full">
+      <div class="chart-title">Общая сумма платежей по месяцам</div>
+      <div class="chart-desc">Динамика ежемесячных начислений за 17 расчётных периодов</div>
+      <div class="chart-wrap-tall">
+        <canvas id="totalChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Chart 2: Category breakdown stacked -->
+    <div class="chart-card chart-full">
+      <div class="chart-title">Структура расходов: квартплата и коммунальные</div>
+      <div class="chart-desc">Квартплата (содержание + СОИ + доп. услуги) и коммунальные услуги · сумма = «Итого»</div>
+      <div class="legend-row" id="catLegend"></div>
+      <div class="chart-wrap-tall">
+        <canvas id="stackedChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Chart 3: Communal structure -->
+    <div class="chart-card chart-full">
+      <div class="chart-title">Из чего состоят коммунальные услуги</div>
+      <div class="chart-desc">Разбивка коммунального платежа по видам ресурсов (₽), стопкой</div>
+      <div class="legend-row" id="komLegend"></div>
+      <div class="chart-wrap-tall">
+        <canvas id="kommunalStructChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Chart 4: Electricity -->
+    <div class="chart-card">
+      <div class="chart-title">Электроэнергия</div>
+      <div class="chart-desc">Потребление (кВтч) и стоимость (₽)</div>
+      <div class="chart-wrap">
+        <canvas id="elecChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Chart 5: Heating -->
+    <div class="chart-card">
+      <div class="chart-title">Отопление</div>
+      <div class="chart-desc">Объём (Гкал) и стоимость (₽)</div>
+      <div class="chart-wrap">
+        <canvas id="heatChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Chart 6: Water -->
+    <div class="chart-card">
+      <div class="chart-title">Холодная вода + Водоотведение</div>
+      <div class="chart-desc">Стоимость услуг водоснабжения (₽)</div>
+      <div class="chart-wrap">
+        <canvas id="waterChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Chart 7: Tariff change -->
+    <div class="chart-card">
+      <div class="chart-title">Изменение тарифов</div>
+      <div class="chart-desc">Тариф на электроэнергию (₽/кВтч) и отопление (₽/Гкал)</div>
+      <div class="chart-wrap">
+        <canvas id="tariffChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="chart-card" style="margin-bottom:24px">
+    <div class="chart-title">Детализация по месяцам</div>
+    <div class="chart-desc">Полная разбивка начислений · ₽</div>
+    <div style="overflow-x:auto;margin-top:8px">
+      <table id="detailTable"></table>
+    </div>
+  </div>
+
+  <footer>
+    Источник: официальные квитанции ООО «А1» (программа «Квартплата», ООО «Центр Бонус»).<br>
+    Период данных: декабрь 2024 — апрель 2026 (17 месяцев). С 01.01.2026 изменены тарифы на все коммунальные услуги; индексация содержания на 9,48% с 01.09.2025.<br>
+    «Коммунальные» включают отопление, электроэнергию, холодную воду, водоотведение, ТКО и (с апреля 2026) ГВС.
+  </footer>
+
+</div>
+
+<script>
+const MONTHS = [
+  'Дек 2024','Янв 2025','Фев 2025','Мар 2025','Апр 2025',
+  'Май 2025','Июн 2025','Июл 2025','Авг 2025','Сен 2025',
+  'Окт 2025','Ноя 2025','Дек 2025','Янв 2026','Фев 2026',
+  'Мар 2026','Апр 2026'
+];
+
+// Данные из официальных квитанций ООО «А1». kvartplata[i] + kommunal[i] === total[i].
+const DATA = {
+  total:        [9204.43,11467.27,10879.85,9636.57,9387.66,8716.71,8976.53,11566.55,9376.93,10639.75,12227.52,11756.01,13248.53,17839.48,15587.99,14816.42,10913.58],
+  kvartplata:   [5736.26,7058.44,6357.35,6197.81,5904.67,5912.14,5985.95,8402.65,6103.90,6606.05,6578.65,6645.18,6466.65,6862.52,6642.83,6822.35,6377.95],
+  kommunal:     [3468.17,4408.83,4522.50,3438.76,3482.99,2804.57,2990.58,3163.90,3273.03,4033.70,5648.87,5110.83,6781.88,10976.96,8945.16,7994.07,4535.63],
+  heatGkal:     [0.6949,1.1423,0.8828,0.6937,0.1501,0.002,0,0,0,0.0018,0.3194,0.4197,0.5846,1.1315,0.5864,0.6384,0.0175],
+  heatRub:      [2975.28,3780.20,3520.08,2593.18,1023.76,129.00,0,0,0,97.24,1585.83,2016.29,2791.40,5071.38,4089.49,2373.78,650.55],
+  heatTariff:   [2482.54,2482.54,2482.54,2482.54,2482.54,2482.54,0,0,2805.94,2805.94,2805.94,2805.94,2852.44,2899.98,2899.98,2899.98,2899.98],
+  elecKwh:      [8,43,138,80,386,413,499,413,445,531,615,483,618,982,822,893,544],
+  elecRub:      [31.44,168.99,542.34,314.40,1516.98,1623.09,1961.07,1829.59,1971.35,2352.33,2724.45,2139.69,2737.74,4419.00,3699.00,4018.50,2448.00],
+  elecTariff:   [3.93,3.93,3.93,3.93,3.93,3.93,3.93,4.43,4.43,4.43,4.43,4.43,4.43,4.5,4.5,4.5,4.5],
+  coldWaterRub: [1.34,4.90,4.01,22.30,292.96,357.17,343.79,505.28,485.60,655.93,507.86,276.45,456.09,592.09,393.15,661.56,423.15],
+  drainRub:     [4.15,5.43,5.11,24.61,209.98,256.00,246.41,332.62,319.67,431.79,334.32,181.99,300.24,389.81,258.84,435.55,310.81],
+};
+
+// «ТКО и прочее» в составе коммунальных = коммун. − (отопл + электр + хол.вода + водоотв)
+DATA.kommunalOther = DATA.kommunal.map((k, i) =>
+  +(k - DATA.heatRub[i] - DATA.elecRub[i] - DATA.coldWaterRub[i] - DATA.drainRub[i]).toFixed(2));
+
+// Проверка инварианта (в консоль)
+DATA.total.forEach((t, i) => {
+  const sum = +(DATA.kvartplata[i] + DATA.kommunal[i]).toFixed(2);
+  if (sum !== t) console.warn(`Несовпадение в ${MONTHS[i]}: ${sum} != ${t}`);
+});
+
+// Colors
+const C = {
+  cyan: 'rgba(0,229,255,1)',
+  orange: 'rgba(255,107,53,1)',
+  green: 'rgba(168,255,120,1)',
+  yellow: 'rgba(247,151,30,1)',
+  purple: 'rgba(187,134,252,1)',
+};
+
+const fmt = v => v.toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+const baseOptions = (yLabel = '₽') => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#111318',
+      borderColor: '#1e2230',
+      borderWidth: 1,
+      titleColor: '#00e5ff',
+      bodyColor: '#e8eaf0',
+      titleFont: { family: 'JetBrains Mono', size: 11 },
+      bodyFont: { family: 'JetBrains Mono', size: 11 },
+      callbacks: {
+        label: ctx => {
+          const v = ctx.parsed.y;
+          if (yLabel === '₽') return ` ${fmt(v)} ₽`;
+          return ` ${v} ${yLabel}`;
+        }
+      }
+    }
+  },
+  scales: {
+    x: {
+      grid: { color: 'rgba(255,255,255,0.04)' },
+      ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 45 },
+      border: { color: '#1e2230' }
+    },
+    y: {
+      grid: { color: 'rgba(255,255,255,0.04)' },
+      ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 },
+        callback: v => yLabel === '₽' ? v.toLocaleString('ru') + ' ₽' : v + ' ' + yLabel
+      },
+      border: { color: '#1e2230' }
+    }
+  }
+});
+
+function makeGradient(ctx, color1, color2) {
+  const g = ctx.createLinearGradient(0, 0, 0, 300);
+  g.addColorStop(0, color1);
+  g.addColorStop(1, color2);
+  return g;
+}
+
+function renderLegend(elId, cats) {
+  const lg = document.getElementById(elId);
+  cats.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'legend-item';
+    el.innerHTML = `<div class="legend-dot" style="background:${c.color}"></div><span>${c.label}</span>`;
+    lg.appendChild(el);
+  });
+}
+
+// 1. Total chart
+(function() {
+  const ctx = document.getElementById('totalChart').getContext('2d');
+  const maxV = Math.max(...DATA.total), minV = Math.min(...DATA.total);
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        data: DATA.total,
+        backgroundColor: DATA.total.map(v => v === maxV ? C.orange : v === minV ? C.green : 'rgba(0,229,255,0.6)'),
+        borderColor: DATA.total.map(v => v === maxV ? C.orange : v === minV ? C.green : C.cyan),
+        borderWidth: 1,
+        borderRadius: 2,
+      }, {
+        type: 'line',
+        data: DATA.total,
+        borderColor: 'rgba(247,151,30,0.7)',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: C.yellow,
+        tension: 0.4,
+        fill: false,
+      }]
+    },
+    options: {
+      ...baseOptions(),
+      plugins: {
+        ...baseOptions().plugins,
+        tooltip: {
+          ...baseOptions().plugins.tooltip,
+          callbacks: { label: ctx => ` ${fmt(ctx.parsed.y)} ₽` }
+        }
+      }
+    }
+  });
+})();
+
+// 2. Stacked chart — квартплата vs коммунальные
+(function() {
+  const ctx = document.getElementById('stackedChart').getContext('2d');
+  const cats = [
+    { label: 'Квартплата (содержание + СОИ + доп.)', data: DATA.kvartplata, color: C.cyan },
+    { label: 'Коммунальные услуги', data: DATA.kommunal, color: C.orange },
+  ];
+  renderLegend('catLegend', cats);
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTHS,
+      datasets: cats.map(c => ({
+        label: c.label,
+        data: c.data,
+        backgroundColor: c.color.replace('1)', '0.7)'),
+        borderColor: c.color,
+        borderWidth: 1,
+        borderRadius: 2,
+      }))
+    },
+    options: {
+      ...baseOptions(),
+      plugins: {
+        ...baseOptions().plugins,
+        legend: { display: false },
+        tooltip: {
+          ...baseOptions().plugins.tooltip,
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)} ₽` }
+        }
+      },
+      scales: {
+        ...baseOptions().scales,
+        x: { ...baseOptions().scales.x, stacked: true },
+        y: { ...baseOptions().scales.y, stacked: true }
+      }
+    }
+  });
+})();
+
+// 3. Communal structure — stacked breakdown
+(function() {
+  const ctx = document.getElementById('kommunalStructChart').getContext('2d');
+  const cats = [
+    { label: 'Отопление', data: DATA.heatRub, color: C.orange },
+    { label: 'Электроэнергия', data: DATA.elecRub, color: C.yellow },
+    { label: 'Холодная вода', data: DATA.coldWaterRub, color: C.cyan },
+    { label: 'Водоотведение', data: DATA.drainRub, color: C.green },
+    { label: 'ТКО и прочее', data: DATA.kommunalOther, color: C.purple },
+  ];
+  renderLegend('komLegend', cats);
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTHS,
+      datasets: cats.map(c => ({
+        label: c.label,
+        data: c.data,
+        backgroundColor: c.color.replace('1)', '0.7)'),
+        borderColor: c.color,
+        borderWidth: 1,
+        borderRadius: 2,
+      }))
+    },
+    options: {
+      ...baseOptions(),
+      plugins: {
+        ...baseOptions().plugins,
+        legend: { display: false },
+        tooltip: {
+          ...baseOptions().plugins.tooltip,
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)} ₽` }
+        }
+      },
+      scales: {
+        ...baseOptions().scales,
+        x: { ...baseOptions().scales.x, stacked: true },
+        y: { ...baseOptions().scales.y, stacked: true }
+      }
+    }
+  });
+})();
+
+// 4. Electricity
+(function() {
+  const ctx = document.getElementById('elecChart').getContext('2d');
+  const grad = makeGradient(ctx, 'rgba(247,151,30,0.3)', 'rgba(247,151,30,0.02)');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: 'Стоимость, ₽',
+        data: DATA.elecRub,
+        borderColor: C.yellow,
+        backgroundColor: grad,
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: C.yellow,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y',
+      }, {
+        label: 'Объём, кВтч',
+        data: DATA.elecKwh,
+        borderColor: 'rgba(247,151,30,0.4)',
+        borderWidth: 2,
+        borderDash: [5,3],
+        pointRadius: 3,
+        pointBackgroundColor: C.yellow,
+        tension: 0.4,
+        fill: false,
+        yAxisID: 'y2',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111318', borderColor: '#1e2230', borderWidth: 1,
+          titleColor: '#00e5ff', bodyColor: '#e8eaf0',
+          titleFont: { family: 'JetBrains Mono', size: 11 },
+          bodyFont: { family: 'JetBrains Mono', size: 11 },
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 45 }, border: { color: '#1e2230' } },
+        y: { position: 'left', grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + ' ₽' }, border: { color: '#1e2230' } },
+        y2: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(247,151,30,0.5)', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + ' кВт' }, border: { color: '#1e2230' } }
+      }
+    }
+  });
+})();
+
+// 5. Heating
+(function() {
+  const ctx = document.getElementById('heatChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: 'Стоимость, ₽',
+        data: DATA.heatRub,
+        backgroundColor: 'rgba(255,107,53,0.6)',
+        borderColor: C.orange,
+        borderWidth: 1,
+        borderRadius: 2,
+        yAxisID: 'y',
+      }, {
+        type: 'line',
+        label: 'Объём, Гкал',
+        data: DATA.heatGkal,
+        borderColor: 'rgba(255,107,53,0.5)',
+        borderWidth: 2,
+        borderDash: [5,3],
+        pointRadius: 3,
+        pointBackgroundColor: C.orange,
+        tension: 0.4,
+        fill: false,
+        yAxisID: 'y2',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111318', borderColor: '#1e2230', borderWidth: 1, titleColor: '#00e5ff', bodyColor: '#e8eaf0', titleFont: { family: 'JetBrains Mono', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 11 } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 45 }, border: { color: '#1e2230' } },
+        y: { position: 'left', grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + ' ₽' }, border: { color: '#1e2230' } },
+        y2: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(255,107,53,0.5)', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + ' Гкал' }, border: { color: '#1e2230' } }
+      }
+    }
+  });
+})();
+
+// 6. Water
+(function() {
+  const ctx = document.getElementById('waterChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: 'Холодная вода, ₽',
+        data: DATA.coldWaterRub,
+        backgroundColor: 'rgba(0,229,255,0.6)',
+        borderColor: C.cyan,
+        borderWidth: 1,
+        borderRadius: 2,
+      }, {
+        label: 'Водоотведение, ₽',
+        data: DATA.drainRub,
+        backgroundColor: 'rgba(168,255,120,0.5)',
+        borderColor: C.green,
+        borderWidth: 1,
+        borderRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111318', borderColor: '#1e2230', borderWidth: 1, titleColor: '#00e5ff', bodyColor: '#e8eaf0', titleFont: { family: 'JetBrains Mono', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 11 }, callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)} ₽` } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 45 }, border: { color: '#1e2230' }, stacked: true },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + ' ₽' }, border: { color: '#1e2230' }, stacked: true }
+      }
+    }
+  });
+})();
+
+// 7. Tariffs
+(function() {
+  const ctx = document.getElementById('tariffChart').getContext('2d');
+  // 0 для отопления = летние месяцы без начисления → null, чтобы линия не падала в ноль
+  const heatTariffPlot = DATA.heatTariff.map(v => v === 0 ? null : v);
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: 'Электроэнергия, ₽/кВтч',
+        data: DATA.elecTariff,
+        borderColor: C.yellow,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: C.yellow,
+        stepped: true,
+        yAxisID: 'y',
+      }, {
+        label: 'Отопление, ₽/Гкал',
+        data: heatTariffPlot,
+        borderColor: C.orange,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: C.orange,
+        stepped: true,
+        spanGaps: true,
+        yAxisID: 'y2',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          labels: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 11 }, usePointStyle: true, pointStyleWidth: 10 }
+        },
+        tooltip: { backgroundColor: '#111318', borderColor: '#1e2230', borderWidth: 1, titleColor: '#00e5ff', bodyColor: '#e8eaf0', titleFont: { family: 'JetBrains Mono', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 11 }, callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}` } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 45 }, border: { color: '#1e2230' } },
+        y: { position: 'left', grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: C.yellow, font: { family: 'JetBrains Mono', size: 10 }, callback: v => v.toFixed(2) + ' ₽/кВтч' }, border: { color: '#1e2230' } },
+        y2: { position: 'right', grid: { display: false }, ticks: { color: C.orange, font: { family: 'JetBrains Mono', size: 10 }, callback: v => v.toFixed(0) + ' ₽/Гкал' }, border: { color: '#1e2230' } }
+      }
+    }
+  });
+})();
+
+// Table
+(function() {
+  const table = document.getElementById('detailTable');
+  const cols = ['Период','Итого','Квартплата','Коммунальные','Электр.','Отопление','Вода+Водоотв.'];
+  const thead = document.createElement('thead');
+  thead.innerHTML = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  MONTHS.forEach((m, i) => {
+    const prev = i > 0 ? DATA.total[i-1] : null;
+    const diff = prev ? DATA.total[i] - prev : null;
+    const diffStr = diff !== null ? `<span class="${diff >= 0 ? 'up' : 'down'}">${diff >= 0 ? '▲' : '▼'} ${fmt(Math.abs(diff))}</span>` : '—';
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td style="color:var(--accent1)">${m}</td>
+      <td><strong>${fmt(DATA.total[i])} ₽</strong> ${diffStr}</td>
+      <td>${fmt(DATA.kvartplata[i])} ₽</td>
+      <td>${fmt(DATA.kommunal[i])} ₽</td>
+      <td>${fmt(DATA.elecRub[i])} ₽</td>
+      <td>${fmt(DATA.heatRub[i])} ₽</td>
+      <td>${fmt(DATA.coldWaterRub[i] + DATA.drainRub[i])} ₽</td>
+    `;
+    tbody.appendChild(row);
+  });
+  // Итоговая строка
+  const sum = arr => arr.reduce((a,b)=>a+b,0);
+  const foot = document.createElement('tr');
+  foot.style.borderTop = '1px solid var(--border)';
+  foot.innerHTML = `
+    <td style="color:var(--accent4)"><strong>Итого</strong></td>
+    <td><strong>${fmt(sum(DATA.total))} ₽</strong></td>
+    <td><strong>${fmt(sum(DATA.kvartplata))} ₽</strong></td>
+    <td><strong>${fmt(sum(DATA.kommunal))} ₽</strong></td>
+    <td><strong>${fmt(sum(DATA.elecRub))} ₽</strong></td>
+    <td><strong>${fmt(sum(DATA.heatRub))} ₽</strong></td>
+    <td><strong>${fmt(sum(DATA.coldWaterRub) + sum(DATA.drainRub))} ₽</strong></td>
+  `;
+  tbody.appendChild(foot);
+  table.appendChild(tbody);
+})();
+</script>
+</body>
+</html>
