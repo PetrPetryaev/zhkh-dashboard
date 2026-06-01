@@ -201,7 +201,10 @@
   td {
     padding: 10px 16px;
     border-bottom: 1px solid rgba(30,34,48,0.5);
+    white-space: nowrap;
   }
+
+  th { white-space: nowrap; }
 
   tr:last-child td { border-bottom: none; }
 
@@ -242,9 +245,37 @@
     letter-spacing: 0.04em;
   }
 
+  /* Планшеты и телефоны */
   @media (max-width: 768px) {
-    .charts-grid { grid-template-columns: 1fr; }
+    .container { padding: 24px 16px; }
+    header { margin-bottom: 28px; padding-bottom: 20px; }
+    .charts-grid { grid-template-columns: 1fr; gap: 16px; margin-bottom: 16px; }
     .chart-full { grid-column: 1; }
+    .stats-row { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+    .stat-card { padding: 16px; }
+    .stat-value { font-size: 22px; }
+    .stat-label { font-size: 9px; }
+    .chart-card { padding: 18px 14px; }
+    .chart-wrap { height: 240px; }
+    .chart-wrap-tall { height: 280px; }
+    .chart-desc { margin-bottom: 18px; }
+    table { font-size: 11px; }
+    th, td { padding: 8px 12px; }
+  }
+
+  /* Узкие телефоны */
+  @media (max-width: 420px) {
+    .container { padding: 20px 12px; }
+    h1 { font-size: 30px; }
+    .subtitle { font-size: 10px; line-height: 1.5; }
+    .badge { font-size: 9px; }
+    .stat-value { font-size: 20px; }
+    .chart-card { padding: 16px 12px; }
+    .chart-wrap { height: 220px; }
+    .chart-wrap-tall { height: 260px; }
+    .legend-row { gap: 10px; }
+    .legend-item { font-size: 10px; }
+    footer { font-size: 10px; }
   }
 </style>
 </head>
@@ -410,6 +441,12 @@ const C = {
 
 const fmt = v => v.toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2});
 
+// Узкий экран → компактные подписи осей (18 000 ₽ → 18к), чтобы не обрезались на телефоне
+const NARROW = () => window.innerWidth <= 480;
+const rubTick = v => NARROW()
+  ? (Math.abs(v) >= 1000 ? (v/1000).toLocaleString('ru') + 'к' : '' + v)
+  : v.toLocaleString('ru') + ' ₽';
+
 const baseOptions = (yLabel = '₽') => ({
   responsive: true,
   maintainAspectRatio: false,
@@ -441,7 +478,7 @@ const baseOptions = (yLabel = '₽') => ({
     y: {
       grid: { color: 'rgba(255,255,255,0.04)' },
       ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 },
-        callback: v => yLabel === '₽' ? v.toLocaleString('ru') + ' ₽' : v + ' ' + yLabel
+        callback: v => yLabel === '₽' ? rubTick(v) : v + ' ' + yLabel
       },
       border: { color: '#1e2230' }
     }
@@ -634,8 +671,8 @@ function renderLegend(elId, cats) {
       },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 45 }, border: { color: '#1e2230' } },
-        y: { position: 'left', grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + ' ₽' }, border: { color: '#1e2230' } },
-        y2: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(247,151,30,0.5)', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + ' кВт' }, border: { color: '#1e2230' } }
+        y: { position: 'left', grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => rubTick(v) }, border: { color: '#1e2230' } },
+        y2: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(247,151,30,0.5)', font: { family: 'JetBrains Mono', size: 10 }, callback: v => NARROW() ? '' + v : v + ' кВт' }, border: { color: '#1e2230' } }
       }
     }
   });
@@ -676,8 +713,8 @@ function renderLegend(elId, cats) {
       plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111318', borderColor: '#1e2230', borderWidth: 1, titleColor: '#00e5ff', bodyColor: '#e8eaf0', titleFont: { family: 'JetBrains Mono', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 11 } } },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 45 }, border: { color: '#1e2230' } },
-        y: { position: 'left', grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + ' ₽' }, border: { color: '#1e2230' } },
-        y2: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(255,107,53,0.5)', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + ' Гкал' }, border: { color: '#1e2230' } }
+        y: { position: 'left', grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => rubTick(v) }, border: { color: '#1e2230' } },
+        y2: { position: 'right', grid: { display: false }, ticks: { color: 'rgba(255,107,53,0.5)', font: { family: 'JetBrains Mono', size: 10 }, callback: v => NARROW() ? '' + v : v + ' Гкал' }, border: { color: '#1e2230' } }
       }
     }
   });
@@ -712,7 +749,7 @@ function renderLegend(elId, cats) {
       plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111318', borderColor: '#1e2230', borderWidth: 1, titleColor: '#00e5ff', bodyColor: '#e8eaf0', titleFont: { family: 'JetBrains Mono', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 11 }, callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)} ₽` } } },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 45 }, border: { color: '#1e2230' }, stacked: true },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + ' ₽' }, border: { color: '#1e2230' }, stacked: true }
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => rubTick(v) }, border: { color: '#1e2230' }, stacked: true }
       }
     }
   });
@@ -762,8 +799,8 @@ function renderLegend(elId, cats) {
       },
       scales: {
         x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, maxRotation: 45 }, border: { color: '#1e2230' } },
-        y: { position: 'left', grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: C.yellow, font: { family: 'JetBrains Mono', size: 10 }, callback: v => v.toFixed(2) + ' ₽/кВтч' }, border: { color: '#1e2230' } },
-        y2: { position: 'right', grid: { display: false }, ticks: { color: C.orange, font: { family: 'JetBrains Mono', size: 10 }, callback: v => v.toFixed(0) + ' ₽/Гкал' }, border: { color: '#1e2230' } }
+        y: { position: 'left', grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: C.yellow, font: { family: 'JetBrains Mono', size: 10 }, callback: v => NARROW() ? v.toFixed(1) : v.toFixed(2) + ' ₽/кВтч' }, border: { color: '#1e2230' } },
+        y2: { position: 'right', grid: { display: false }, ticks: { color: C.orange, font: { family: 'JetBrains Mono', size: 10 }, callback: v => NARROW() ? (v/1000).toFixed(1) + 'к' : v.toFixed(0) + ' ₽/Гкал' }, border: { color: '#1e2230' } }
       }
     }
   });
